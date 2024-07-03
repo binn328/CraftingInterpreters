@@ -83,7 +83,7 @@ public class Lox {
 
     /**
      * error 함수의 helper 함수이다.
-     * @param line 에러가 발생한 줄 번호이다.
+     * @param line 에러가 발생한 줄 번호이다..
      * @param where 에러가 발생한 부분을 나타낸다.
      * @param message 에러가 발생한 원인에 대한 메시지이다.
      */
