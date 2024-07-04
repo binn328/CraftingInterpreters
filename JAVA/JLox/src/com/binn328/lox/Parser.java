@@ -8,11 +8,25 @@ import static com.binn328.lox.TokenType.*;
  * 문법 규칙을 파싱하는 파서 클래스
  */
 public class Parser {
+    private static class ParseError extends RuntimeException {}
+
     private final List<Token> tokens;
     private int current = 0;
 
-    Parser(List<Token> tokens) {
+    public Parser(List<Token> tokens) {
         this.tokens = tokens;
+    }
+
+    /**
+     * 파서를 기동하는 초기 메소드
+     * @return
+     */
+    public Expr parse() {
+        try {
+            return expression();
+        } catch (ParseError error) {
+            return null;
+        }
     }
 
     /**
@@ -113,7 +127,7 @@ public class Parser {
      * @return
      */
     private Expr primary() {
-        if (match(FALSE)) return new Expr.Literal(false));
+        if (match(FALSE)) return new Expr.Literal(false);
         if (match(TRUE)) return new Expr.Literal(true);
         if (match(NIL)) return new Expr.Literal(null);
 
@@ -126,6 +140,8 @@ public class Parser {
             consume(RIGHT_PAREN, "Expect ')' after expression.");
             return new Expr.Grouping(expr);
         }
+
+        throw error(peek(), "Expect expression.");
     }
 
     /**
@@ -207,18 +223,35 @@ public class Parser {
      * @param message
      * @return
      */
-    private ParseError report(Token token, String message) {
+    private ParseError error(Token token, String message) {
         Lox.error(token, message);
-        return new ParserError();
+        return new ParseError();
     }
 
-    static void error(Token token, String message) {
-        if (token.type == TokenType.EOF) {
-            report(token.line, " at end", message);
-        } else {
-            report(token.line, " at '" + token.lexeme + "'", message);
+    /**
+     * 문장 경계를 찾을 때까지 토큰을 버린다.
+     * ParseError를 처리한 후, 이 메소드를 호출하면 동기화 동작을 한다.
+     * 계단식 에러를 일으킬 수 있는 토큰을 버렸으므로, 다음 문장부터 파싱이 가능하다.
+     */
+    private void synchronize() {
+        advance();
+
+        while (!isAtEnd()) {
+            if (previous().type == SEMICOLON) return;
+
+            switch (peek().type) {
+                case CLASS:
+                case FUN:
+                case VAR:
+                case FOR:
+                case IF:
+                case WHILE:
+                case PRINT:
+                case RETURN:
+                    return;
+            }
+
+            advance();
         }
     }
-
-
 }
